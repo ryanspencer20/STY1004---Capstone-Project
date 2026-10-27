@@ -5,11 +5,14 @@ STY1004 - Capstone Project for Software Development. A Traffic Light system arch
 
 ### 1.1 Problem Statement
 
-This capstone project will be based from a set of traffic lights in Sudbury, ON Downtown location to replace or add red light cameras with real time cameras counting functionality vehicles during peak hours to control the set of lights. The problem is the set of lights during peak hours must be controlled because of close proximity of the set lights in row. They must be controlled in a way that let's the flow of traffic through while timing the set of lights together with the best efficiency possible.
+This capstone project is based on a sequential corridor of traffic lights in *downtown Sudbury, ON*. The objective is to replace or augment existing infrastructure with dynamic vehicle-counting and red-light monitoring functionalities. The current system faces clear efficiency bottlenecks during peak operational hours due to the close proximity of consecutive intersections. These intersections must be systematically controlled to permit a continuous, efficient flow of traffic by synchronizing the signal timing along the corridor. As highlighted by a Sudbury.com [1] news analysis, the municipality is actively working to remediate uncoordinated corridors where consecutive signals trigger red lights simultaneously. This project establishes a proposed solution utilizing modern IoT platform topology and simulated camera telemetry to intelligently optimize signal efficiency.
+
 
 ### 1.2 Project Objectives & Descriptions
 
-The architecture will be based on C# dotnet, using a set of rules describing the lighting sequence using count logic to control the lights adding from the timing logic. An EFCore database will be implemented for data analyst and storing current and historical count sequencing for training data on the most efficient logic count vs timing logic over time. Evaluations throughout project lifecycle will determine sequencing for traffic logic. Logic may be subject to change based on experimentations; However, rules will be determined through group commitment discussions and research. The proper standards of dotnet will include the following projects: Domain, Application, Infrastructure and MS Tests Suite. Each will contain the proper architecture artifacts, as described in [1.3 Deliverables]. 
+The platform architecture is built using C# and .NET core frameworks. It utilizes a centralized rules engine to describe lighting sequences, combining traditional time-interval intervals with dynamic, count-based override logic. Simulated and mocked data payloads will emulate real-time edge-device telemetry from the cameras. The red-light camera modules will ingest these simulated events to log intersection infractions, capturing vehicle metadata and plate identifiers. Additionally, the camera module logic will calculate vehicle velocity to identify speed-trap violations across the target intersections.
+
+An Entity Framework Core (EF Core) data access layer will manage data persistence, tracking real-time status updates and historical traffic counts. This historical data provides an analytical foundation to continuously test and train the logic rules (count-based overrides vs. static timing schedules) over time. System rules and traffic behaviors will undergo iterative evaluation and group-led experimental adjustments throughout the project lifecycle. The solution adheres strictly to clean architecture principles by organizing code into a decoupled multi-project topology: Domain, Application, Infrastructure, and an automated MSTest Suite. Each project contains explicit architectural artifacts detailed in `1.3 Deliverables & Artifacts`.
 
 ### 1.3 Deliverables & Artifacts
 
@@ -18,16 +21,16 @@ The architecture will be based on C# dotnet, using a set of rules describing the
   * IoTPlatform.Domain: Pure business entities, value objects, domain exceptions. Zero dependencies.
   * IoTPlatform.Application: Interfaces for repositories, DTOs, and service contracts.
   * IoTPlatform.Infrastructure: EF Core DbContext, entity configurations, SQL Server repositories, and JSON seed loaders.
-  * IoTPlatform.UnitTests: MSTest suite covering domain rules and repository contracts.
+  * IoTPlatform.UnitTests: MSTest suit covering domain rules and repository contracts.
 
 ***Domain & Data Scope***:
 
-  * Entities: DeviceAsset, TelemetryMetric, AlertRule, and MaintenanceLog.
-  * Enforce business invariants: serial numbers must follow format masks, operating limits must be positive ranges, and status transitions must follow lifecycle rules.
+  * Entities: `IntersectionDevice`, `TrafficTelemetry`, `SignalRule`, and `ViolationLog`.
+  * Enforce business invariants: Enforcement of serial number format masks, positive ranges for operating boundaries, and explicit state-transition constraints for intersection lifecycles.
   * Relational mapping: configure primary keys, foreign keys, indexes, and constraints using EF Core Fluent API.
 
-***Verification Suite***:
-  * Unit tests achieving coverage across all domain invariant methods.
+***Verification Suit***:
+  * Automated unit tests achieving full verification coverage across all defined domain invariant methods.
 
 ***Architecture Blueprint Document (Single PDF)***:
   * System Overview: Problem statement and high-level platform scope.
@@ -39,18 +42,23 @@ The architecture will be based on C# dotnet, using a set of rules describing the
 
 ***In Scope:*** 
 
-* Camera logic
-* Traffic Lights Hard Rules
-  * Red Light Camera Function
-  * Scenario Preventions (***eg.*** Red light North-South, Green light East-West)
-  * Timing vs Count Integrations
-* Traffic Lights logic
-* Database Current Real-Time
-* Database Historical Data
-* MS Test suit (*Zero Dependencies*)
+* Processing of simulated AI and video metrics payloads
+* Core traffic light signal state logic
+* Visual speed-trap simulation logic
+* Traffic Light Hard Invariants (e.g., Scenario prevention: ensuring a North-South Green safely locks an East-West Red)
+* Integration mechanics between time-interval schedules and dynamic count overrides
+* Real-time and historical transactional database design
+* Interactive Console Application user interface
+* Isolated MSTest Suite with zero external runtime dependencies
+
 
 ***Out of Scope:***
-* AI Integration
+* Direct processing of raw live video streams
+* Machine Learning model training and weight optimization
+* Native video stream decoding/transcoding on the local platform
+* Vehicle type recognition 
+* Production hardware deployment to physical infrastructure
+* Advanced municipal routing integrations (such as live GPS Emergency Vehicle Preemptions and Transit priority modules).
 
 ### 1.5 Definition of Done
 
@@ -59,3 +67,7 @@ The architecture will be based on C# dotnet, using a set of rules describing the
 - [ ] EF Core migrations generate tables matching the ERD.
 - [ ] Architecture Blueprint PDF contains all required diagrams and team contribution logs.
 - [ ] Submitted via LMS by all group members with GitHub repository URL.
+
+## 1.6 Referecences
+
+[1] T. Clarke, "Hate red light waits? Sudbury project optimizing traffic flow," Sudbury.com, Aug. 15, 2023. [Online]. Available: https://www.sudbury.com/local-news/hate-red-light-waits-sudbury-project-optimizing-traffic-flow-7408291
