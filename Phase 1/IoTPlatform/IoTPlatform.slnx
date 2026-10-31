@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="IoTPlatform.Application/IoTPlatform.Application.csproj" />
+  <Project Path="IoTPlatform.Domain/IoTPlatform.Domain.csproj" />
+  <Project Path="IoTPlatform.Infrastructure/IoTPlatform.Infrastructure.csproj" />
+  <Project Path="IoTPlatform.UnitTests/IoTPlatform.UnitTests.csproj" />
+</Solution>
