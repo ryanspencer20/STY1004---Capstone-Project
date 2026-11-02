@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using IoTPlatform.Domain;
 
 namespace IoTPlatform.Infrastructure
 {
@@ -72,7 +73,7 @@ namespace IoTPlatform.Infrastructure
             #endregion
 
             #region "Signal_Rule Model Configuration"
-            signalRuleModel.HasKey(e => e.Intersection_SerialID);
+            signalRuleModel.HasKey(e => new { e.Intersection_SerialID, e.Approach });
 
             signalRuleModel
                 .Property(e => e.Yellow_Time_Sec)
@@ -92,11 +93,7 @@ namespace IoTPlatform.Infrastructure
             #endregion
 
             #region "Traffic_Telemetry Model Configuration"
-            trafficTelemetryModel.HasKey(e => e.Recorded_At);
-
-            trafficTelemetryModel
-                .Property(e => e.Data)
-                .IsRequired();
+            trafficTelemetryModel.HasKey(e => new { e.Device_Serial, e.Recorded_At, e.Approach });
 
             trafficTelemetryModel
                 .Property(e => e.Device_Serial)
@@ -112,7 +109,7 @@ namespace IoTPlatform.Infrastructure
             #endregion
 
             #region "Violation_log Model Configuration"
-            violationLogModel.HasKey(e => e.Occured_At);
+            violationLogModel.HasKey(e => new { e.Device_Serial, e.Occured_At });
 
             violationLogModel
                 .Property(e => e.Violation_Type)
@@ -126,14 +123,14 @@ namespace IoTPlatform.Infrastructure
 
         public class IntersectionDevice
         {
-            public string Device_Serial { get; set; } = string.Empty; // Primary key for the Blog entity
+            public string Device_Serial { get; set; } = null!; // Primary key for the IntersectionDevice entity
             public string Location_SerialID { get; set; } = string.Empty;
             public string Device_Name { get; set; } = string.Empty;
-            public string Status { get; set; } = string.Empty;
-            public string NorthSouthVehicle { get; set; } = string.Empty;
-            public string EastWestVehicle { get; set; } = string.Empty;
-            public string NorthSouthPedestrian { get; set; } = string.Empty;
-            public string EastWestPedestrian { get; set; } = string.Empty;
+            public DeviceLifecycle Status { get; set; } = new DeviceLifecycle();
+            public VehicleSignalState NorthSouthVehicle { get; set; } = new VehicleSignalState();
+            public VehicleSignalState EastWestVehicle { get; set; } = new VehicleSignalState();
+            public PedestrianSignalState NorthSouthPedestrian { get; set; } = new PedestrianSignalState();
+            public PedestrianSignalState EastWestPedestrian { get; set; } = new PedestrianSignalState();
             public List<Violation_log> Violation_logs { get; } = new();
 
             public List<Signal_Rule> Signal_Rules { get; } = new();
@@ -143,34 +140,38 @@ namespace IoTPlatform.Infrastructure
         public class Signal_Rule
         {
             public string Intersection_SerialID { get; set; } = string.Empty; // Primary key for the Signal_Rule entity
-            public string Approach { get; set; } = string.Empty;
+            public Approach Approach { get; set; } = new Approach();
             public int Min_Green_Time_Sec { get; set; }
             public int Max_Green_Time_Sec { get; set; }
             public int Advanced_Green_Time_Sec { get; set; }
             public int Yellow_Time_Sec { get; set; }
+            public int CountOverrideThreshold { get; set; }
+            public bool IsEnabled { get; set; }
+
             public string Device_Serial { get; set; } = string.Empty; // Foreign key for the IntersectionDevice entity
             public IntersectionDevice IntersectionDevice { get; set; } = null!;
         }
         public class Traffic_Telemetry
         {
-            public DateTime Recorded_At { get; set; } = DateTime.UtcNow; // Primary key for the Traffic_Telemetry entity
-            public string Data { get; set; } = string.Empty;
-            public string Device_Serial { get; set; } = string.Empty; // Foreign key for the IntersectionDevice entity
-            public string Vehicle_Count { get; set; } = string.Empty;
-            public double Speed_Kph { get; set; }
+            public string Device_Serial { get; set; } = null!; // Compound key for the Traffic_Telemetry entity and Foreign key for the IntersectionDevice entity
+            public DateTime Recorded_At { get; set; } = DateTime.UtcNow; // Compound key for the Traffic_Telemetry entity
+
+            public Approach Approach { get; set; } = new Approach();
+            public int Vehicle_Count { get; set; } = 0;
+            public decimal Speed_Kph { get; set; }
+
             public IntersectionDevice IntersectionDevice { get; set; } = null!;
             
         }
         public class Violation_log
         {
-            public DateTime Occured_At { get; set; } = DateTime.UtcNow; // Primary key for the Violation_log entity
-            public string Violation_Type { get; set; } = string.Empty;
-            public string Plate_Number { get; set; } = string.Empty;
-            public double Speed_Kph { get; set; }
-            public string Signal_At_Time { get; set; } = string.Empty;
+            public string Device_Serial { get; set; } = null!; // Primary and Foreign key for the IntersectionDevice entity
+            public DateTime Occured_At { get; set; } = DateTime.UtcNow; // Compound key for the Violation_log entity
+            public ViolationType Violation_Type { get; set; } = new ViolationType();
+            public string? Plate_Number { get; set; } = string.Empty;
+            public decimal? Speed_Kph { get; set; }
+            public VehicleSignalState Signal_At_Time { get; set; } = new VehicleSignalState();
             
-
-            public string Device_Serial { get; set; } = string.Empty; // Foreign key for the IntersectionDevice entity
             public IntersectionDevice IntersectionDevice { get; set; } = null!;
         }
     }
