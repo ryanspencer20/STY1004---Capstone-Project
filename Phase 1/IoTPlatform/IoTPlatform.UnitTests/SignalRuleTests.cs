@@ -7,6 +7,7 @@ namespace IoTPlatform.UnitTests
     [TestClass]
     public class SignalRuleTests
     {
+
         [TestMethod]
         public void Create_ValidInputs_StoresSettings()
         {
@@ -29,64 +30,22 @@ namespace IoTPlatform.UnitTests
         }
 
         [TestMethod]
-        public void ShouldOverride_CountAtThreshold_ReturnsTrue()
+        [DataRow(10, 30, 0, 5, 8)]
+        [DataRow(40, 30, 3, 5, 8)]
+        [DataRow(10, 30, 3, 5, 0)]
+        public void Create_InvalidSettings_Throws(
+            int minGreen, int maxGreen, int yellow, int advancedGreen, int threshold)
         {
             // Arrange
             SerialNumber device = SerialNumber.Parse("INT-001");
-            SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
-            TrafficTelemetry reading = TrafficTelemetry.Record(
-                device, Approach.NorthSouth, 8, 40m);
 
             // Act
-            bool result = rule.ShouldOverride(reading);
+            Action act = () => SignalRule.Create(
+                device, Approach.NorthSouth, minGreen, maxGreen,
+                yellow, advancedGreen, threshold);
 
             // Assert
-            Assert.IsTrue(result);
-        }
-
-        [TestMethod]
-        public void NextState_GreenAtMaximum_ReturnsYellow()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-            SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
-
-            // Act
-            VehicleSignalState result = rule.NextState(
-                VehicleSignalState.Green, 30);
-
-            // Assert
-            Assert.AreEqual(VehicleSignalState.Yellow, result);
-        }
-
-        [TestMethod]
-        public void Create_ZeroDuration_Throws()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SignalRule.Create(
-                    device, Approach.NorthSouth, 10, 30, 0, 5, 8);
-            });
-        }
-
-        [TestMethod]
-        public void Create_MinimumAboveMaximum_Throws()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SignalRule.Create(
-                    device, Approach.NorthSouth, 40, 30, 3, 5, 8);
-            });
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
 
         [TestMethod]
@@ -95,12 +54,12 @@ namespace IoTPlatform.UnitTests
             // Arrange
             SerialNumber device = null!;
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentNullException>(() =>
-            {
-                SignalRule.Create(
-                    device, Approach.NorthSouth, 10, 30, 3, 5, 8);
-            });
+            // Act
+            Action act = () => SignalRule.Create(
+                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentNullException>(act);
         }
 
         [TestMethod]
@@ -109,157 +68,94 @@ namespace IoTPlatform.UnitTests
             // Arrange
             SerialNumber device = SerialNumber.Parse("INT-001");
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SignalRule.Create(
-                    device, (Approach)99, 10, 30, 3, 5, 8);
-            });
+            // Act
+            Action act = () => SignalRule.Create(
+                device, (Approach)99, 10, 30, 3, 5, 8);
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
 
         [TestMethod]
-        public void Create_ZeroThreshold_Throws()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SignalRule.Create(
-                    device, Approach.NorthSouth, 10, 30, 3, 5, 0);
-            });
-        }
-
-        [TestMethod]
-        public void ShouldOverride_CountBelowThreshold_ReturnsFalse()
+        [DataRow("INT-001", Approach.NorthSouth, 8, true, true)]
+        [DataRow("INT-001", Approach.NorthSouth, 7, true, false)]
+        [DataRow("INT-001", Approach.NorthSouth, 8, false, false)]
+        [DataRow("INT-002", Approach.NorthSouth, 8, true, false)]
+        [DataRow("INT-001", Approach.EastWest, 8, true, false)]
+        public void ShouldOverride_ReturnsExpectedResult(
+            string readingSerial, Approach approach, int count,
+            bool enabled, bool expected)
         {
             // Arrange
             SerialNumber device = SerialNumber.Parse("INT-001");
             SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
+                device, Approach.NorthSouth, 10, 30, 3, 5, 8, enabled);
             TrafficTelemetry reading = TrafficTelemetry.Record(
-                device, Approach.NorthSouth, 7, 40m);
+                SerialNumber.Parse(readingSerial), approach, count, 40m);
 
             // Act
             bool result = rule.ShouldOverride(reading);
 
             // Assert
-            Assert.IsFalse(result);
+            Assert.AreEqual(expected, result);
         }
 
         [TestMethod]
-        public void ShouldOverride_DisabledRule_ReturnsFalse()
+        public void ShouldOverride_NullReading_Throws()
         {
             // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
             SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8, false);
-            TrafficTelemetry reading = TrafficTelemetry.Record(
-                device, Approach.NorthSouth, 8, 40m);
+                SerialNumber.Parse("INT-001"), Approach.NorthSouth,
+                10, 30, 3, 5, 8);
 
             // Act
-            bool result = rule.ShouldOverride(reading);
+            Action act = () => rule.ShouldOverride(null!);
 
             // Assert
-            Assert.IsFalse(result);
+            Assert.ThrowsExactly<ArgumentNullException>(act);
         }
 
         [TestMethod]
-        public void NextState_FollowsConfiguredTimes()
+        [DataRow(VehicleSignalState.AdvancedGreen, 4, true, VehicleSignalState.AdvancedGreen)]
+        [DataRow(VehicleSignalState.AdvancedGreen, 5, true, VehicleSignalState.Green)]
+        [DataRow(VehicleSignalState.Green, 29, true, VehicleSignalState.Green)]
+        [DataRow(VehicleSignalState.Green, 30, true, VehicleSignalState.Yellow)]
+        [DataRow(VehicleSignalState.Yellow, 2, true, VehicleSignalState.Yellow)]
+        [DataRow(VehicleSignalState.Yellow, 3, true, VehicleSignalState.Red)]
+        [DataRow(VehicleSignalState.Green, 30, false, VehicleSignalState.Green)]
+        [DataRow(VehicleSignalState.Red, 30, true, VehicleSignalState.Red)]
+        public void NextState_ReturnsExpectedState(
+            VehicleSignalState current, int elapsed, bool enabled,
+            VehicleSignalState expected)
         {
             // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
             SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
+                SerialNumber.Parse("INT-001"), Approach.NorthSouth,
+                10, 30, 3, 5, 8, enabled);
 
             // Act
-            VehicleSignalState earlyAdvanced = rule.NextState(
-                VehicleSignalState.AdvancedGreen, 4);
-            VehicleSignalState finishedAdvanced = rule.NextState(
-                VehicleSignalState.AdvancedGreen, 5);
-            VehicleSignalState earlyGreen = rule.NextState(
-                VehicleSignalState.Green, 29);
-            VehicleSignalState earlyYellow = rule.NextState(
-                VehicleSignalState.Yellow, 2);
-            VehicleSignalState finishedYellow = rule.NextState(
-                VehicleSignalState.Yellow, 3);
+            VehicleSignalState result = rule.NextState(current, elapsed);
 
             // Assert
-            Assert.AreEqual(VehicleSignalState.AdvancedGreen, earlyAdvanced);
-            Assert.AreEqual(VehicleSignalState.Green, finishedAdvanced);
-            Assert.AreEqual(VehicleSignalState.Green, earlyGreen);
-            Assert.AreEqual(VehicleSignalState.Yellow, earlyYellow);
-            Assert.AreEqual(VehicleSignalState.Red, finishedYellow);
+            Assert.AreEqual(expected, result);
         }
 
         [TestMethod]
-        public void ShouldOverride_UnrelatedReading_ReturnsFalse()
+        [DataRow((VehicleSignalState)99, 0)]
+        [DataRow(VehicleSignalState.Green, -1)]
+        public void NextState_InvalidInput_Throws(
+            VehicleSignalState current, int elapsed)
         {
             // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
             SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
-
-            TrafficTelemetry otherDevice = TrafficTelemetry.Record(
-                SerialNumber.Parse("INT-002"), Approach.NorthSouth, 8, 40m);
-
-            TrafficTelemetry otherApproach = TrafficTelemetry.Record(
-                device, Approach.EastWest, 8, 40m);
+                SerialNumber.Parse("INT-001"), Approach.NorthSouth,
+                10, 30, 3, 5, 8);
 
             // Act
-            bool wrongDevice = rule.ShouldOverride(otherDevice);
-            bool wrongApproach = rule.ShouldOverride(otherApproach);
+            Action act = () => rule.NextState(current, elapsed);
 
             // Assert
-            Assert.IsFalse(wrongDevice);
-            Assert.IsFalse(wrongApproach);
-        }
-
-        [TestMethod]
-        public void NextState_DisabledOrRed_DoesNotChange()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-            SignalRule disabled = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8, false);
-            SignalRule enabled = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
-
-            // Act
-            VehicleSignalState disabledResult = disabled.NextState(
-                VehicleSignalState.Green, 30);
-            VehicleSignalState redResult = enabled.NextState(
-                VehicleSignalState.Red, 30);
-
-            // Assert
-            Assert.AreEqual(VehicleSignalState.Green, disabledResult);
-            Assert.AreEqual(VehicleSignalState.Red, redResult);
-        }
-
-        [TestMethod]
-        public void RuleMethods_InvalidInputs_Throw()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-            SignalRule rule = SignalRule.Create(
-                device, Approach.NorthSouth, 10, 30, 3, 5, 8);
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentNullException>(() =>
-            {
-                rule.ShouldOverride(null!);
-            });
-
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                rule.NextState((VehicleSignalState)99, 0);
-            });
-
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                rule.NextState(VehicleSignalState.Green, -1);
-            });
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
     }
 }

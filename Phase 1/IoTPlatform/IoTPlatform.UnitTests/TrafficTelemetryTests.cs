@@ -7,8 +7,11 @@ namespace IoTPlatform.UnitTests
     [TestClass]
     public class TrafficTelemetryTests
     {
+
         [TestMethod]
-        public void Record_ValidInputs_StoresExpectedValues()
+        [DataRow(Approach.NorthSouth, 5)]
+        [DataRow(Approach.EastWest, 0)]
+        public void Record_ValidInputs_StoresExpectedValues(Approach approach, int count)
         {
             // Arrange
             SerialNumber device = SerialNumber.Parse("INT-001");
@@ -16,94 +19,62 @@ namespace IoTPlatform.UnitTests
 
             // Act
             TrafficTelemetry result = TrafficTelemetry.Record(
-                device, Approach.NorthSouth, 5, 40m);
-
-            DateTimeOffset after = DateTimeOffset.UtcNow;
+                device, approach, count, 40m);
 
             // Assert
+            DateTimeOffset after = DateTimeOffset.UtcNow;
             Assert.AreEqual(device, result.DeviceSerial);
-            Assert.AreEqual(Approach.NorthSouth, result.Approach);
-            Assert.AreEqual(5, result.VehicleCount);
+            Assert.AreEqual(approach, result.Approach);
+            Assert.AreEqual(count, result.VehicleCount);
             Assert.AreEqual(40m, result.SpeedKph);
             Assert.IsTrue(result.RecordedAt >= before);
             Assert.IsTrue(result.RecordedAt <= after);
         }
 
         [TestMethod]
-        public void Record_ZeroVehicleCount_IsAccepted()
+        [DataRow(-1, 40)]
+        [DataRow(5, 0)]
+        [DataRow(5, -1)]
+        public void Record_InvalidCountOrSpeed_Throws(int count, int speed)
+        {
+            // Arrange
+            SerialNumber device = SerialNumber.Parse("INT-001");
+            decimal speedKph = speed;
+
+            // Act
+            Action act = () => TrafficTelemetry.Record(
+                device, Approach.NorthSouth, count, speedKph);
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentException>(act);
+        }
+
+        [TestMethod]
+        public void Record_MissingDevice_Throws()
+        {
+            // Arrange
+            SerialNumber device = null!;
+
+            // Act
+            Action act = () => TrafficTelemetry.Record(
+                device, Approach.NorthSouth, 5, 40m);
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentNullException>(act);
+        }
+
+        [TestMethod]
+        public void Record_InvalidApproach_Throws()
         {
             // Arrange
             SerialNumber device = SerialNumber.Parse("INT-001");
 
             // Act
-            TrafficTelemetry result = TrafficTelemetry.Record(
-                device, Approach.EastWest, 0, 40m);
+            Action act = () => TrafficTelemetry.Record(
+                device, (Approach)99, 5, 40m);
 
             // Assert
-            Assert.AreEqual(0, result.VehicleCount);
-            Assert.AreEqual(Approach.EastWest, result.Approach);
-        }
-
-        [TestMethod]
-        public void Record_NegativeVehicleCount_ThrowsArgumentException()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                TrafficTelemetry.Record(device, Approach.NorthSouth, -1, 40m);
-            });
-        }
-
-        [TestMethod]
-        public void Record_ZeroSpeed_ThrowsArgumentException()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                TrafficTelemetry.Record(device, Approach.NorthSouth, 5, 0m);
-            });
-        }
-
-        [TestMethod]
-        public void Record_NegativeSpeed_ThrowsArgumentException()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            //Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                TrafficTelemetry.Record(device, Approach.NorthSouth, 5, -1m);
-            });
-        }
-
-        [TestMethod]
-        public void Record_MissingDevice_ThrowsArgumentNullException()
-        {
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentNullException>(() =>
-            {
-                TrafficTelemetry.Record(null!, Approach.NorthSouth, 5, 40m);
-            });
-        }
-
-        [TestMethod]
-        public void Record_InvalidApproach_ThrowsArgumentException()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("INT-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                TrafficTelemetry.Record(device, (Approach)99, 5, 40m);
-            });
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
     }
 }
