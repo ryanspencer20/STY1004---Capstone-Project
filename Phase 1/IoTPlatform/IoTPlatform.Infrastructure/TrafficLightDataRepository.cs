@@ -18,7 +18,6 @@ namespace IoTPlatform.Infrastructure
             {
                 return null;
             }
-
             return IntersectionDevice.Register(serial, row.Device_Name);
         }
 

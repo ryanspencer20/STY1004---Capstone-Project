@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\IoTPlatform.Domain\IoTPlatform.Domain.csproj" />
+    <ProjectReference Include="..\IoTPlatform.Application\IoTPlatform.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -47,7 +47,6 @@ namespace IoTPlatform.Domain
 
             return new IntersectionDevice(serial, name);
         }
-
         public void Activate()
         {
             if (Status != DeviceLifecycle.Commissioned)
