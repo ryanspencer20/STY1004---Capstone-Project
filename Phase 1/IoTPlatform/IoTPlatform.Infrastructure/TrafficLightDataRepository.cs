@@ -38,6 +38,26 @@ namespace IoTPlatform.Infrastructure
 
             db.SaveChanges();
         }
+
+        public void UpdateDevice(IntersectionDevice device)
+        {
+            using var db = new Database();
+
+            var existing = db.IntersectionDevices.Find(device.Serial.Value);
+            if (existing == null)
+            {
+                throw new InvalidOperationException("Device not found.");
+            }
+
+            existing.Device_Name = device.DisplayName;
+            existing.Status = device.Status;
+            existing.NorthSouthVehicle = device.NorthSouthVehicle;
+            existing.EastWestVehicle = device.EastWestVehicle;
+            existing.NorthSouthPedestrian = device.NorthSouthPedestrian;
+            existing.EastWestPedestrian = device.EastWestPedestrian;
+
+            db.SaveChanges();
+        }
         public void SaveTelemetry(TrafficTelemetry reading)
         {
             using var db = new Database();

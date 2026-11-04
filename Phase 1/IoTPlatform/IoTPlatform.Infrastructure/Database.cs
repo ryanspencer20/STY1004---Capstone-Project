@@ -51,7 +51,7 @@ namespace IoTPlatform.Infrastructure
                 .HasMany(e => e.Signal_Rules)
                 .WithOne(e => e.IntersectionDevice)
                 .OnDelete(DeleteBehavior.Restrict)
-                .HasForeignKey(e => e.Device_Serial);
+                .HasForeignKey(e => e.Location_SerialID);
 
             intersectionDeviceModel
                 .HasMany(e => e.Traffic_Telemetries)
@@ -73,7 +73,7 @@ namespace IoTPlatform.Infrastructure
             #endregion
 
             #region "Signal_Rule Model Configuration"
-            signalRuleModel.HasKey(e => new { e.Intersection_SerialID, e.Approach });
+            signalRuleModel.HasKey(e => new { e.Location_SerialID, e.Approach });
 
             signalRuleModel
                 .Property(e => e.Yellow_Time_Sec)
@@ -131,15 +131,15 @@ namespace IoTPlatform.Infrastructure
             public VehicleSignalState EastWestVehicle { get; set; } = new VehicleSignalState();
             public PedestrianSignalState NorthSouthPedestrian { get; set; } = new PedestrianSignalState();
             public PedestrianSignalState EastWestPedestrian { get; set; } = new PedestrianSignalState();
-            public List<Violation_log> Violation_logs { get; } = new();
 
+            public List<Violation_log> Violation_logs { get; } = new();
             public List<Signal_Rule> Signal_Rules { get; } = new();
             public List<Traffic_Telemetry> Traffic_Telemetries { get; } = new();
         }
 
         public class Signal_Rule
         {
-            public string Intersection_SerialID { get; set; } = string.Empty; // Primary key for the Signal_Rule entity
+            public string Location_SerialID { get; set; } = string.Empty; // Primary key for the Signal_Rule entity
             public Approach Approach { get; set; } = new Approach();
             public int Min_Green_Time_Sec { get; set; }
             public int Max_Green_Time_Sec { get; set; }

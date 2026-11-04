@@ -10,5 +10,6 @@ namespace IoTPlatform.Domain
     {
         public IntersectionDevice? GetDeviceBySerial(SerialNumber serial);
         public void SaveDevice(IntersectionDevice device);
+        public void UpdateDevice(IntersectionDevice device);
     }
 }
