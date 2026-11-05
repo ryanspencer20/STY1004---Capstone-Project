@@ -18,7 +18,7 @@ namespace IoTPlatform.UnitTests
                 device, Approach.NorthSouth, 10, 30, 3, 5, 8);
 
             // Assert
-            Assert.AreEqual(device, rule.DeviceSerial);
+            Assert.AreEqual(device, rule.LocationSerial);
             Assert.AreEqual(Approach.NorthSouth, rule.Approach);
             Assert.AreEqual(10, rule.MinGreenSeconds);
             Assert.AreEqual(30, rule.MaxGreenSeconds);
@@ -194,25 +194,23 @@ namespace IoTPlatform.UnitTests
         }
 
         [TestMethod]
-        public void ShouldOverride_UnrelatedReading_ReturnsFalse()
+        public void ShouldOverride_WrongApproach_ReturnsFalse()
         {
             // Arrange
             SerialNumber device = SerialNumber.Parse("INT-001");
             SignalRule rule = SignalRule.Create(
                 device, Approach.NorthSouth, 10, 30, 3, 5, 8);
 
-            TrafficTelemetry otherDevice = TrafficTelemetry.Record(
-                SerialNumber.Parse("INT-002"), Approach.NorthSouth, 8, 40m);
-
+            // ShouldOverride is only approach-scoped now that SignalRule
+            // belongs to a location (identity matching against a specific
+            // device no longer applies).
             TrafficTelemetry otherApproach = TrafficTelemetry.Record(
                 device, Approach.EastWest, 8, 40m);
 
             // Act
-            bool wrongDevice = rule.ShouldOverride(otherDevice);
             bool wrongApproach = rule.ShouldOverride(otherApproach);
 
             // Assert
-            Assert.IsFalse(wrongDevice);
             Assert.IsFalse(wrongApproach);
         }
 

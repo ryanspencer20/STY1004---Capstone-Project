@@ -30,7 +30,7 @@ namespace IoTPlatform.UnitTests
 
             // Act
             ViolationLog result = ViolationLog.LogSpeeding(
-                device, 70m, VehicleSignalState.Green);
+                device, VehicleSignalState.Green, 70m);
 
             // Assert
             Assert.AreEqual(ViolationType.Speeding, result.Type);
@@ -72,7 +72,7 @@ namespace IoTPlatform.UnitTests
             // Act and Assert
             Assert.ThrowsExactly<ArgumentNullException>(() =>
             {
-                ViolationLog.LogSpeeding(device, 70m, VehicleSignalState.Green);
+                ViolationLog.LogSpeeding(device, VehicleSignalState.Green, 70m);
             });
         }
 
@@ -85,7 +85,7 @@ namespace IoTPlatform.UnitTests
             // Act and Assert
             Assert.ThrowsExactly<ArgumentException>(() =>
             {
-                ViolationLog.LogSpeeding(device, 0m, VehicleSignalState.Green);
+                ViolationLog.LogSpeeding(device, VehicleSignalState.Green, 0m);
             });
         }
 
@@ -98,7 +98,7 @@ namespace IoTPlatform.UnitTests
             // Act and Assert
             Assert.ThrowsExactly<ArgumentException>(() =>
             {
-                ViolationLog.LogSpeeding(device, -1m, VehicleSignalState.Green);
+                ViolationLog.LogSpeeding(device, VehicleSignalState.Green, -1m);
             });
         }
 
@@ -111,7 +111,7 @@ namespace IoTPlatform.UnitTests
             // Act and Assert
             Assert.ThrowsExactly<ArgumentException>(() =>
             {
-                ViolationLog.LogSpeeding(device, 70m, (VehicleSignalState)99);
+                ViolationLog.LogSpeeding(device, (VehicleSignalState)99, 70m);
             });
         }
     }

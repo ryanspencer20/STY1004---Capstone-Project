@@ -30,10 +30,12 @@ namespace IoTPlatform.UnitTests
             var repository = new SpyIntersectionDeviceRepository();
             var actions = new DeviceActions(repository);
             var serial = SerialNumber.Parse("INT-001");
+
+            var location = SerialNumber.Parse("INT-002");
             var name = "Main St & 1st Ave";
 
             // Act
-            actions.Execute(serial, name);
+            actions.ExecuteRegistration(serial, location, name, FacingDirection.North, "1.0.0");
 
             // Assert
             Assert.IsNotNull(repository.SavedDevice);
@@ -48,9 +50,10 @@ namespace IoTPlatform.UnitTests
             var repository = new SpyIntersectionDeviceRepository();
             var actions = new DeviceActions(repository);
             var serial = SerialNumber.Parse("INT-001");
+            var location = SerialNumber.Parse("INT-002");
 
             // Act
-            Action act = () => actions.Execute(serial, "   ");
+            Action act = () => actions.ExecuteRegistration(serial, location, "   ", FacingDirection.North, "1.0.0");
 
             // Assert
             Assert.ThrowsExactly<ArgumentException>(act);
@@ -62,9 +65,10 @@ namespace IoTPlatform.UnitTests
             // Arrange
             var repository = new SpyIntersectionDeviceRepository();
             var actions = new DeviceActions(repository);
+            var location = SerialNumber.Parse("INT-002");
 
             // Act
-            Action act = () => actions.Execute(SerialNumber.Parse(""), "Main St & 1st Ave");
+            Action act = () => actions.ExecuteRegistration(SerialNumber.Parse(""), location, "Main St & 1st Ave", FacingDirection.North, "1.0.0");
 
             // Assert
             Assert.ThrowsExactly<ArgumentException>(act);
@@ -78,12 +82,18 @@ namespace IoTPlatform.UnitTests
         private sealed class SpyIntersectionDeviceRepository : IIntersectionDeviceRepository
         {
             public IntersectionDevice? SavedDevice { get; private set; }
+            public IntersectionDevice? UpdatedDevice { get; private set; }
 
             public IntersectionDevice? GetDeviceBySerial(SerialNumber serial) => null;
 
             public void SaveDevice(IntersectionDevice device)
             {
                 SavedDevice = device;
+            }
+
+            public void UpdateDevice(IntersectionDevice device)
+            {
+                UpdatedDevice = device;
             }
         }
     }

@@ -2,8 +2,8 @@
 {
     public enum PedestrianSignalState
     {
-        Walk,
+        DontWalk,
         FlashingDontWalk,
-        DontWalk
+        Walk
     }
 }

@@ -7,6 +7,7 @@ namespace IoTPlatform.Domain
 {
     public interface ITrafficTelemetryRepository
     {
-        public void SaveTelemetry(TrafficTelemetry reading);
+        public TrafficTelemetry SaveTelemetry(TrafficTelemetry reading);
+        public TrafficTelemetry? GetTelemetryByTelemetryId(string telemetryId);
     }
 }

@@ -7,6 +7,8 @@ namespace IoTPlatform.Domain
 {
     public interface ISignalRuleRepository
     {
-        
+        public void Add(SignalRule rule);
+        public SignalRule? GetById(Guid id);
+        public IReadOnlyList<SignalRule> GetAll();
     }
 }

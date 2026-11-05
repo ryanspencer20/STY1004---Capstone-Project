@@ -16,9 +16,11 @@ namespace IoTPlatform.Application
             this.repository = repository;
         }
 
-        public void ExecuteRegistration(SerialNumber serial, string name)
+        public void ExecuteRegistration(SerialNumber serial, SerialNumber location, string name, FacingDirection facingDirection, string firmwareVersion)
         {
-            var device = IntersectionDevice.Register(serial, name);
+            var check = SerialNumber.Parse(serial.Value);
+            var checkLocation = SerialNumber.Parse(location.Value);
+            var device = IntersectionDevice.Register(check, checkLocation, name, facingDirection, firmwareVersion);
             repository.SaveDevice(device);            
         }
 
@@ -27,14 +29,6 @@ namespace IoTPlatform.Application
             var device = repository.GetDeviceBySerial(serial)
                 ?? throw new InvalidOperationException("Device not found.");
             return device;
-        }
-
-        public void ExecuteAddRule(SerialNumber serial, SignalRule rule)
-        {
-            var device = repository.GetDeviceBySerial(serial)
-                ?? throw new InvalidOperationException("Device not found.");
-            device.AddRule(rule);
-            repository.SaveDevice(device);
         }
 
         public void ExecuteUpdateDevice(IntersectionDevice device)

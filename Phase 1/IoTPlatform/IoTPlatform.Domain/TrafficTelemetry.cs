@@ -12,12 +12,13 @@ namespace IoTPlatform.Domain
 
         private TrafficTelemetry(
             SerialNumber device,
+            DateTimeOffset recordedAt,
             Approach approach,
             int count,
             decimal speed)
         {
             DeviceSerial = device;
-            RecordedAt = DateTimeOffset.UtcNow;
+            RecordedAt = recordedAt;
             Approach = approach;
             VehicleCount = count;
             SpeedKph = speed;
@@ -25,6 +26,16 @@ namespace IoTPlatform.Domain
 
         public static TrafficTelemetry Record(
             SerialNumber device,
+            Approach approach,
+            int count,
+            decimal speed)
+        {
+            return Restore(device, DateTimeOffset.UtcNow, approach, count, speed);
+        }
+
+        private static TrafficTelemetry Restore(
+            SerialNumber device,
+            DateTimeOffset recordedAt,
             Approach approach,
             int count,
             decimal speed)
@@ -55,7 +66,7 @@ namespace IoTPlatform.Domain
                     nameof(speed));
             }
 
-            return new TrafficTelemetry(device, approach, count, speed);
+            return new TrafficTelemetry(device, recordedAt, approach, count, speed);
         }
 
     }
