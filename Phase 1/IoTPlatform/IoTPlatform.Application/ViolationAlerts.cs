@@ -36,7 +36,8 @@ namespace IoTPlatform.Application
                 throw new ArgumentNullException(nameof(device));
             }
             if (speed == null || speed <= 0) return null;
-            if (speed > 70) {
+            if (speed > 70) 
+            {
                 var speedingViolation = ViolationLog.LogSpeeding(device, signal, speed, plate);
                 if (speedingViolation != null)
                 {

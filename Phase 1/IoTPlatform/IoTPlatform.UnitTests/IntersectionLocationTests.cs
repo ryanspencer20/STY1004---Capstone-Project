@@ -179,5 +179,156 @@ namespace IoTPlatform.UnitTests
             // Assert
             Assert.AreEqual(1, location.Rules.Count);
         }
+
+        [TestMethod]
+        public void Restore_SetsProvidedStateAndRules()
+        {
+            // Arrange
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            SignalRule rule = SignalRule.Create(
+                locationSerial, Approach.NorthSouth, 10, 30, 3, 5, 8);
+            DateTime timestamp = new DateTime(2024, 1, 15, 0, 0, 0, DateTimeKind.Utc);
+
+            // Act — unlike Register (always safe/default state), Restore must
+            // rehydrate whatever signal state and rules actually came from storage.
+            IntersectionLocation location = IntersectionLocation.Restore(
+                locationSerial,
+                "Paris and Cedar",
+                46.49,
+                -80.99,
+                VehicleSignalState.Green,
+                VehicleSignalState.Red,
+                PedestrianSignalState.DontWalk,
+                PedestrianSignalState.DontWalk,
+                new[] { rule },
+                timestamp);
+
+            // Assert
+            Assert.AreEqual(VehicleSignalState.Green, location.NorthSouthVehicle);
+            Assert.AreEqual(VehicleSignalState.Red, location.EastWestVehicle);
+            Assert.AreEqual(1, location.Rules.Count);
+            Assert.AreEqual(rule, location.Rules[0]);
+        }
+
+        [TestMethod]
+        public void Restore_NullSerial_Throws()
+        {
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentNullException>(() =>
+            {
+                IntersectionLocation.Restore(
+                    null!, "Paris and Cedar", 46.49, -80.99,
+                    VehicleSignalState.Red, VehicleSignalState.Red,
+                    PedestrianSignalState.DontWalk, PedestrianSignalState.DontWalk);
+            });
+        }
+
+        [TestMethod]
+        public void ChangePhase_InvalidEnumValue_Throws()
+        {
+            // Arrange
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentException>(() =>
+            {
+                location.ChangePhase((Approach)99, VehicleSignalState.Green);
+            });
+        }
+
+        [TestMethod]
+        public void ChangePhase_SameState_IsNoOp()
+        {
+            // Arrange
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+
+            // Act — already Red, asking for Red again should just return.
+            location.ChangePhase(Approach.NorthSouth, VehicleSignalState.Red);
+
+            // Assert
+            Assert.AreEqual(VehicleSignalState.Red, location.NorthSouthVehicle);
+        }
+
+        [TestMethod]
+        public void SetPedestrian_InvalidEnumValue_Throws()
+        {
+            // Arrange
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentException>(() =>
+            {
+                location.SetPedestrian(Approach.NorthSouth, (PedestrianSignalState)99);
+            });
+        }
+
+        [TestMethod]
+        public void SetPedestrian_SameState_IsNoOp()
+        {
+            // Arrange
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+
+            // Act — already DontWalk, asking for DontWalk again should just return.
+            location.SetPedestrian(Approach.NorthSouth, PedestrianSignalState.DontWalk);
+
+            // Assert
+            Assert.AreEqual(PedestrianSignalState.DontWalk, location.NorthSouthPedestrian);
+        }
+
+        [TestMethod]
+        public void SetPedestrian_EastWestApproach_Works()
+        {
+            // Arrange — existing tests only ever exercise NorthSouth; this
+            // covers the EastWest branch of the same method.
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+
+            // Act
+            location.SetPedestrian(Approach.EastWest, PedestrianSignalState.Walk);
+
+            // Assert
+            Assert.AreEqual(PedestrianSignalState.Walk, location.EastWestPedestrian);
+        }
+
+        [TestMethod]
+        public void AddRule_NullRule_Throws()
+        {
+            // Arrange
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentNullException>(() =>
+            {
+                location.AddRule(null!);
+            });
+        }
+
+        [TestMethod]
+        public void AddRule_SecondRuleForDifferentApproach_Succeeds()
+        {
+            // Arrange — the duplicate-approach check must only reject a
+            // matching approach, not reject outright whenever any rule
+            // already exists for the location.
+            SerialNumber locationSerial = SerialNumber.Parse("INT-001");
+            IntersectionLocation location = IntersectionLocation.Register(locationSerial);
+            SignalRule northSouthRule = SignalRule.Create(
+                locationSerial, Approach.NorthSouth, 10, 30, 3, 5, 8);
+            SignalRule eastWestRule = SignalRule.Create(
+                locationSerial, Approach.EastWest, 10, 30, 3, 5, 8);
+
+            // Act
+            location.AddRule(northSouthRule);
+            location.AddRule(eastWestRule);
+
+            // Assert
+            Assert.AreEqual(2, location.Rules.Count);
+            CollectionAssert.Contains(location.Rules.ToList(), northSouthRule);
+            CollectionAssert.Contains(location.Rules.ToList(), eastWestRule);
+        }
     }
 }

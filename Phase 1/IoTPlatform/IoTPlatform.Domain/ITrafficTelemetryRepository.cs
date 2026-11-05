@@ -9,5 +9,6 @@ namespace IoTPlatform.Domain
     {
         public TrafficTelemetry SaveTelemetry(TrafficTelemetry reading);
         public TrafficTelemetry? GetTelemetryByTelemetryId(string telemetryId);
+        public TrafficTelemetry? GetLastTelemetryByDevice(SerialNumber device);
     }
 }

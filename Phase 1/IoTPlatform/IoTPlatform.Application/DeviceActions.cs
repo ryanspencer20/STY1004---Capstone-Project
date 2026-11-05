@@ -16,12 +16,12 @@ namespace IoTPlatform.Application
             this.repository = repository;
         }
 
-        public void ExecuteRegistration(SerialNumber serial, SerialNumber location, string name, FacingDirection facingDirection, string firmwareVersion)
+        public void ExecuteRegistration(SerialNumber device, SerialNumber location, string name, FacingDirection facingDirection, string firmwareVersion)
         {
-            var check = SerialNumber.Parse(serial.Value);
+            var checkDevice = SerialNumber.Parse(device.Value);
             var checkLocation = SerialNumber.Parse(location.Value);
-            var device = IntersectionDevice.Register(check, checkLocation, name, facingDirection, firmwareVersion);
-            repository.SaveDevice(device);            
+            var newDevice = IntersectionDevice.Register(checkDevice, checkLocation, name, facingDirection, firmwareVersion);
+            repository.SaveDevice(newDevice);            
         }
 
         public IntersectionDevice GetDeviceBySerialNumber(SerialNumber serial)
@@ -33,9 +33,12 @@ namespace IoTPlatform.Application
 
         public void ExecuteUpdateDevice(IntersectionDevice device)
         {
-            var existing = repository.GetDeviceBySerial(device.Serial)
+            // GetDeviceBySerial only confirms the device exists; the new
+            // field values live on the incoming device, so that's what
+            // must be persisted.
+            _ = repository.GetDeviceBySerial(device.Serial)
                 ?? throw new InvalidOperationException("Device not found.");
-            repository.UpdateDevice(existing);
+            repository.UpdateDevice(device);
         }
     }
 }

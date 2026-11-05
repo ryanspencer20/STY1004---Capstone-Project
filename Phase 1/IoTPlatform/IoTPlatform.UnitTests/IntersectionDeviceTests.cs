@@ -75,5 +75,56 @@ namespace IoTPlatform.UnitTests
                 device.Activate();
             });
         }
+
+        [TestMethod]
+        public void Register_NullLocation_Throws()
+        {
+            // Arrange
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentNullException>(() =>
+            {
+                IntersectionDevice.Register(serial, null!, "Paris and Cedar", FacingDirection.North, "1.0.0");
+            });
+        }
+
+        [TestMethod]
+        public void Deactivate_FromCommissioned_Throws()
+        {
+            // Arrange — a freshly-registered device is Commissioned, not
+            // Active/Degraded, so it cannot be deactivated directly.
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
+            IntersectionDevice device = IntersectionDevice.Register(
+                serial, location, "Test Intersection", FacingDirection.North, "1.0.0");
+
+            // Act and Assert
+            Assert.ThrowsExactly<InvalidOperationException>(() =>
+            {
+                device.Deactivate();
+            });
+        }
+
+        [TestMethod]
+        public void Restore_SetsProvidedStatusAndCommissionedDate()
+        {
+            // Arrange
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
+            DateTime commissionedDate = new DateTime(2024, 1, 15, 0, 0, 0, DateTimeKind.Utc);
+
+            // Act — unlike Register (always Commissioned/now), Restore must
+            // rehydrate whatever status and date actually came from storage.
+            IntersectionDevice device = IntersectionDevice.Restore(
+                serial, location, "Paris and Cedar", FacingDirection.North, "1.0.0",
+                DeviceLifecycle.Active, commissionedDate);
+
+            // Assert
+            Assert.AreEqual(serial, device.Serial);
+            Assert.AreEqual(location, device.LocationSerial);
+            Assert.AreEqual(DeviceLifecycle.Active, device.Status);
+            Assert.AreEqual(commissionedDate, device.CommissionedDate);
+        }
     }
 }

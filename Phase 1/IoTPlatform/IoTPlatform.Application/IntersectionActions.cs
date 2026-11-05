@@ -11,24 +11,34 @@ namespace IoTPlatform.Application
         private readonly IIntersectionDeviceRepository repositoryDevice;
         private readonly ITrafficTelemetryRepository repositoryTelemetry;
         private readonly IIntersectionLocationRepository repositoryLocation;
+        private readonly ISignalRuleRepository repositoryRule; 
+
 
         public IntersectionActions(
             IIntersectionDeviceRepository repositoryDevice,
             ITrafficTelemetryRepository repositoryTelemetry,
-            IIntersectionLocationRepository repositoryLocation)
+            IIntersectionLocationRepository repositoryLocation,
+            ISignalRuleRepository repositoryRule)
         {
             this.repositoryDevice = repositoryDevice;
             this.repositoryTelemetry = repositoryTelemetry;
             this.repositoryLocation = repositoryLocation;
+            this.repositoryRule = repositoryRule;
         }
 
-        public void TrafficSignalCorridorOverride(SerialNumber locationSerial, Approach approach, VehicleSignalState nextState)
+        public IntersectionLocation TrafficSignalCorridorOverride(SerialNumber locationSerial, Approach approach, VehicleSignalState nextState,  SignalRule signalRule)
         {
             var location = repositoryLocation.GetLocationBySerial(locationSerial)
                 ?? throw new InvalidOperationException("Location not found.");
 
-            location.ChangePhase(approach, nextState); // domain enforces the rule
-            repositoryLocation.UpdateLocation(location);
+            repositoryRule.Apply(location, signalRule);
+
+            if (signalRule.IsEnabled)
+            {
+                location.ChangePhase(approach, nextState); // domain enforces the rule
+                repositoryLocation.UpdateLocation(location);
+            }
+            return location; 
         }
 
         public void ExecuteAddRule(SerialNumber locationSerial, SignalRule rule)

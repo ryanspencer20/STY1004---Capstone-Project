@@ -6,7 +6,12 @@ using IoTPlatform.Domain;
 
 namespace IoTPlatform.Infrastructure
 {
-    public class TrafficLightDataRepository : IIntersectionDeviceRepository, ITrafficTelemetryRepository, IViolationLogRepository, IIntersectionLocationRepository
+    public class TrafficLightDataRepository : 
+        IIntersectionDeviceRepository, 
+        ITrafficTelemetryRepository, 
+        IViolationLogRepository, 
+        IIntersectionLocationRepository, 
+        ISignalRuleRepository
     {
         public IntersectionDevice? GetDeviceBySerial(SerialNumber serial)
         {
@@ -111,6 +116,29 @@ namespace IoTPlatform.Infrastructure
             db.SaveChanges();
         }
 
+        public void Apply(IntersectionLocation location, SignalRule rule)
+        {
+            using var db = new Database();
+
+            // Signal_Rules' key is the composite (Location_Serial, Approach),
+            // not the IntersectionLocation itself.
+            var existing = db.Signal_Rules.Find(location.LocationSerial.Value, rule.Approach);
+            if (existing == null)
+            {
+                throw new InvalidOperationException("Rule not found for this location and approach.");
+            }
+
+            // Apply the rule to the location in the database
+            existing.Min_Green_Time_Sec = rule.MinGreenSeconds;
+            existing.Max_Green_Time_Sec = rule.MaxGreenSeconds;
+            existing.Yellow_Time_Sec = rule.YellowSeconds;
+            existing.Advanced_Green_Time_Sec = rule.AdvancedGreenSeconds;
+            existing.CountOverrideThreshold = rule.CountOverrideThreshold;
+            existing.IsEnabled = rule.IsEnabled;
+
+            db.SaveChanges();
+        }
+
         public TrafficTelemetry GetTelemetryByTelemetryId(string telemetryId)
         {
             using var db = new Database();
@@ -122,8 +150,9 @@ namespace IoTPlatform.Infrastructure
                 throw new InvalidOperationException("Telemetry not found.");
             }
 
-            var telemetry = TrafficTelemetry.Record(
+            var telemetry = TrafficTelemetry.Restore(
                 SerialNumber.Parse(row.Device_Serial),
+                new DateTimeOffset(DateTime.SpecifyKind(row.Recorded_At, DateTimeKind.Utc)),
                 row.Approach,
                 row.Vehicle_Count,
                 row.Speed_Kph
@@ -248,6 +277,76 @@ namespace IoTPlatform.Infrastructure
             }
 
             db.SaveChanges();
+        }
+
+        public SignalRule? GetRuleByLocationAndApproach(SerialNumber locationSerial, Approach approach)
+        {
+            using var db = new Database();
+            var rule = db.Signal_Rules.FirstOrDefault(r => r.Location_Serial == locationSerial.Value && r.Approach == approach);
+            if (rule == null) return null;
+            return SignalRule.Create(
+                locationSerial,
+                rule.Approach,
+                rule.Min_Green_Time_Sec,
+                rule.Max_Green_Time_Sec,
+                rule.Yellow_Time_Sec,
+                rule.Advanced_Green_Time_Sec,
+                rule.CountOverrideThreshold,
+                rule.IsEnabled
+            );
+        }
+
+        public void Add(SignalRule rule)
+        {
+            using var db = new Database();
+
+            db.Signal_Rules.Add(new Database.Signal_Rule
+            {
+                Location_Serial = rule.LocationSerial.Value,
+                Approach = rule.Approach,
+                Min_Green_Time_Sec = rule.MinGreenSeconds,
+                Max_Green_Time_Sec = rule.MaxGreenSeconds,
+                Yellow_Time_Sec = rule.YellowSeconds,
+                Advanced_Green_Time_Sec = rule.AdvancedGreenSeconds,
+                CountOverrideThreshold = rule.CountOverrideThreshold,
+                IsEnabled = rule.IsEnabled,
+            });
+
+            db.SaveChanges();
+        }
+
+        public IReadOnlyList<SignalRule> GetAll()
+        {
+            using var db = new Database();
+
+            return db.Signal_Rules
+                .Select(r => SignalRule.Create(
+                    SerialNumber.Parse(r.Location_Serial),
+                    r.Approach,
+                    r.Min_Green_Time_Sec,
+                    r.Max_Green_Time_Sec,
+                    r.Yellow_Time_Sec,
+                    r.Advanced_Green_Time_Sec,
+                    r.CountOverrideThreshold,
+                    r.IsEnabled))
+                .ToList();
+        }
+
+        public TrafficTelemetry? GetLastTelemetryByDevice(SerialNumber device)
+        {
+            using var db = new Database();
+            var telemetry = db.Traffic_Telemetries
+                .Where(t => t.Device_Serial == device.Value)
+                .OrderByDescending(t => t.Recorded_At)
+                .FirstOrDefault();
+            if (telemetry == null) return null;
+            return TrafficTelemetry.Restore(
+                device,
+                new DateTimeOffset(DateTime.SpecifyKind(telemetry.Recorded_At, DateTimeKind.Utc)),
+                telemetry.Approach,
+                telemetry.Vehicle_Count,
+                telemetry.Speed_Kph
+            );
         }
     }
 }

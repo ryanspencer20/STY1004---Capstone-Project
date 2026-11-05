@@ -8,7 +8,7 @@ namespace IoTPlatform.Domain
     public interface ISignalRuleRepository
     {
         public void Add(SignalRule rule);
-        public SignalRule? GetById(Guid id);
+        public void Apply(IntersectionLocation location, SignalRule rule);
         public IReadOnlyList<SignalRule> GetAll();
     }
 }
