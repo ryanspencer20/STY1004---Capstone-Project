@@ -12,54 +12,51 @@ namespace IoTPlatform.UnitTests
         public void Register_SetsDetailsAndSafeStates()
         {
             // Arrange
-            SerialNumber serial = SerialNumber.Parse("INT-001");
-
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
             // Act
             IntersectionDevice device = IntersectionDevice.Register(
-                serial, "Paris and Cedar");
+                serial, location, "Paris and Cedar", FacingDirection.North, "1.0.0");
 
             // Assert
             Assert.AreEqual(serial, device.Serial);
             Assert.AreEqual("Paris and Cedar", device.DisplayName);
+            Assert.AreEqual(FacingDirection.North, device.FacingDirection);
+            Assert.AreEqual("1.0.0", device.FirmwareVersion);
             Assert.AreEqual(DeviceLifecycle.Commissioned, device.Status);
-            Assert.AreEqual(VehicleSignalState.Red, device.NorthSouthVehicle);
-            Assert.AreEqual(VehicleSignalState.Red, device.EastWestVehicle);
-            Assert.AreEqual(PedestrianSignalState.DontWalk, device.NorthSouthPedestrian);
-            Assert.AreEqual(PedestrianSignalState.DontWalk, device.EastWestPedestrian);
         }
 
         [TestMethod]
         public void Register_NullSerial_Throws()
         {
             // Arrange
-            SerialNumber serial = null!;
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentNullException>(() =>
+            {
+                IntersectionDevice.Register(null!, location, "Paris and Cedar", FacingDirection.North, "1.0.0");
+            });
 
-            // Act
-            Action act = () => IntersectionDevice.Register(serial, "Paris and Cedar");
+            Assert.ThrowsExactly<ArgumentException>(() =>
+            {
+                IntersectionDevice.Register(serial, location, "", FacingDirection.North, "1.0.0");
+            });
 
-            // Assert
-            Assert.ThrowsExactly<ArgumentNullException>(act);
+            Assert.ThrowsExactly<ArgumentException>(() =>
+            {
+                IntersectionDevice.Register(serial, location, "Paris and Cedar", FacingDirection.North, "   ");
+            });
         }
 
         [TestMethod]
         public void Register_EmptyName_Throws()
         {
             // Arrange
-            SerialNumber serial = SerialNumber.Parse("INT-001");
-
-            // Act
-            Action act = () => IntersectionDevice.Register(serial, "");
-
-            // Assert
-            Assert.ThrowsExactly<ArgumentException>(act);
-        }
-
-        [TestMethod]
-        public void Activate_CommissionedDevice_BecomesActive()
-        {
-            // Arrange
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
             IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
+                serial, location, "Test Intersection", FacingDirection.North, "1.0.0");
 
             // Act
             device.Activate();
@@ -68,25 +65,11 @@ namespace IoTPlatform.UnitTests
             Assert.AreEqual(DeviceLifecycle.Active, device.Status);
         }
 
-        [TestMethod]
-        public void Deactivate_ActiveDevice_SetsSafeStates()
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-            device.ChangePhase(Approach.NorthSouth, VehicleSignalState.Green);
-
             // Act
             device.Deactivate();
 
             // Assert
             Assert.AreEqual(DeviceLifecycle.Decommissioned, device.Status);
-            Assert.AreEqual(VehicleSignalState.Red, device.NorthSouthVehicle);
-            Assert.AreEqual(VehicleSignalState.Red, device.EastWestVehicle);
-            Assert.AreEqual(PedestrianSignalState.DontWalk, device.NorthSouthPedestrian);
-            Assert.AreEqual(PedestrianSignalState.DontWalk, device.EastWestPedestrian);
-        }
 
         [TestMethod]
         public void Activate_DecommissionedDevice_Throws()
@@ -105,230 +88,54 @@ namespace IoTPlatform.UnitTests
         }
 
         [TestMethod]
-        public void StartAdvancedGreen_SafeDevice_SetsAdvancedGreen()
+        public void Register_NullLocation_Throws()
         {
             // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
 
-            // Act
-            device.StartAdvancedGreen(Approach.NorthSouth);
-
-            // Assert
-            Assert.AreEqual(VehicleSignalState.AdvancedGreen, device.NorthSouthVehicle);
-        }
-
-        [TestMethod]
-        public void ChangePhase_NorthSouthStopped_AllowsEastWestGreen()
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-            device.StartAdvancedGreen(Approach.NorthSouth);
-            device.ChangePhase(Approach.NorthSouth, VehicleSignalState.Green);
-            device.ChangePhase(Approach.NorthSouth, VehicleSignalState.Yellow);
-            device.ChangePhase(Approach.NorthSouth, VehicleSignalState.Red);
-
-            // Act
-            device.ChangePhase(Approach.EastWest, VehicleSignalState.Green);
-
-            // Assert
-            Assert.AreEqual(VehicleSignalState.Red, device.NorthSouthVehicle);
-            Assert.AreEqual(VehicleSignalState.Green, device.EastWestVehicle);
-        }
-
-        [TestMethod]
-        [DataRow(Approach.EastWest, VehicleSignalState.Green)]
-        [DataRow(Approach.NorthSouth, VehicleSignalState.Red)]
-        public void ChangePhase_UnsafeChange_Throws(
-            Approach approach, VehicleSignalState nextState)
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-            device.ChangePhase(Approach.NorthSouth, VehicleSignalState.Green);
-
-            // Act
-            Action act = () => device.ChangePhase(approach, nextState);
-
-            // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-            Assert.AreEqual(VehicleSignalState.Green, device.NorthSouthVehicle);
-            Assert.AreEqual(VehicleSignalState.Red, device.EastWestVehicle);
-        }
-
-        [TestMethod]
-        [DataRow(PedestrianSignalState.DontWalk, PedestrianSignalState.Walk)]
-        [DataRow(PedestrianSignalState.Walk, PedestrianSignalState.FlashingDontWalk)]
-        [DataRow(PedestrianSignalState.FlashingDontWalk, PedestrianSignalState.DontWalk)]
-        public void SetPedestrian_ValidTransition_ChangesState(
-            PedestrianSignalState current, PedestrianSignalState nextState)
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-
-            if (current != PedestrianSignalState.DontWalk)
+            // Act and Assert
+            Assert.ThrowsExactly<ArgumentNullException>(() =>
             {
-                device.SetPedestrian(Approach.NorthSouth, PedestrianSignalState.Walk);
-            }
+                IntersectionDevice.Register(serial, null!, "Paris and Cedar", FacingDirection.North, "1.0.0");
+            });
+        }
 
-            if (current == PedestrianSignalState.FlashingDontWalk)
+        [TestMethod]
+        public void Deactivate_FromCommissioned_Throws()
+        {
+            // Arrange — a freshly-registered device is Commissioned, not
+            // Active/Degraded, so it cannot be deactivated directly.
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
+            IntersectionDevice device = IntersectionDevice.Register(
+                serial, location, "Test Intersection", FacingDirection.North, "1.0.0");
+
+            // Act and Assert
+            Assert.ThrowsExactly<InvalidOperationException>(() =>
             {
-                device.SetPedestrian(
-                    Approach.NorthSouth, PedestrianSignalState.FlashingDontWalk);
-            }
-
-            // Act
-            device.SetPedestrian(Approach.NorthSouth, nextState);
-
-            // Assert
-            Assert.AreEqual(nextState, device.NorthSouthPedestrian);
+                device.Deactivate();
+            });
         }
 
         [TestMethod]
-        public void ChangePhase_PedestriansWalking_Throws()
+        public void Restore_SetsProvidedStatusAndCommissionedDate()
         {
             // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-            device.SetPedestrian(Approach.NorthSouth, PedestrianSignalState.Walk);
+            SerialNumber serial = SerialNumber.Parse("CAM-001");
+            SerialNumber location = SerialNumber.Parse("INT-001");
+            DateTime commissionedDate = new DateTime(2024, 1, 15, 0, 0, 0, DateTimeKind.Utc);
 
-            // Act
-            Action act = () => device.ChangePhase(
-                Approach.EastWest, VehicleSignalState.Green);
-
-            // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-        }
-
-        [TestMethod]
-        public void SetPedestrian_SkipsFlashingState_Throws()
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-            device.SetPedestrian(Approach.NorthSouth, PedestrianSignalState.Walk);
-
-            // Act
-            Action act = () => device.SetPedestrian(
-                Approach.NorthSouth, PedestrianSignalState.DontWalk);
+            // Act — unlike Register (always Commissioned/now), Restore must
+            // rehydrate whatever status and date actually came from storage.
+            IntersectionDevice device = IntersectionDevice.Restore(
+                serial, location, "Paris and Cedar", FacingDirection.North, "1.0.0",
+                DeviceLifecycle.Active, commissionedDate);
 
             // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-        }
-
-        [TestMethod]
-        public void SetPedestrian_TrafficMoving_Throws()
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-            device.Activate();
-            device.SetPedestrian(Approach.NorthSouth, PedestrianSignalState.Walk);
-            device.SetPedestrian(
-                Approach.NorthSouth, PedestrianSignalState.FlashingDontWalk);
-            device.SetPedestrian(Approach.NorthSouth, PedestrianSignalState.DontWalk);
-            device.ChangePhase(Approach.EastWest, VehicleSignalState.Green);
-
-            // Act
-            Action act = () => device.SetPedestrian(
-                Approach.NorthSouth, PedestrianSignalState.Walk);
-
-            // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-            Assert.AreEqual(PedestrianSignalState.DontWalk, device.NorthSouthPedestrian);
-        }
-
-        [TestMethod]
-        public void ChangePhase_InactiveDevice_Throws()
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-
-            // Act
-            Action act = () => device.ChangePhase(
-                Approach.NorthSouth, VehicleSignalState.Green);
-
-            // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-        }
-
-        [TestMethod]
-        public void SetPedestrian_InactiveDevice_Throws()
-        {
-            // Arrange
-            IntersectionDevice device = IntersectionDevice.Register(
-                SerialNumber.Parse("INT-001"), "Test Intersection");
-
-            // Act
-            Action act = () => device.SetPedestrian(
-                Approach.NorthSouth, PedestrianSignalState.Walk);
-
-            // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-        }
-
-        [TestMethod]
-        public void AddRule_MatchingDevice_AddsRule()
-        {
-            // Arrange
-            SerialNumber serial = SerialNumber.Parse("INT-001");
-            IntersectionDevice device = IntersectionDevice.Register(serial, "Test Intersection");
-            SignalRule rule = SignalRule.Create(
-                serial, Approach.NorthSouth, 10, 30, 3, 5, 8);
-
-            // Act
-            device.AddRule(rule);
-
-            // Assert
-            Assert.AreEqual(1, device.Rules.Count);
-            Assert.AreEqual(rule, device.Rules[0]);
-        }
-
-        [TestMethod]
-        public void AddRule_DuplicateApproach_Throws()
-        {
-            // Arrange
-            SerialNumber serial = SerialNumber.Parse("INT-001");
-            IntersectionDevice device = IntersectionDevice.Register(serial, "Test Intersection");
-            device.AddRule(SignalRule.Create(
-                serial, Approach.NorthSouth, 10, 30, 3, 5, 8));
-            SignalRule duplicate = SignalRule.Create(
-                serial, Approach.NorthSouth, 15, 40, 3, 5, 10);
-
-            // Act
-            Action act = () => device.AddRule(duplicate);
-
-            // Assert
-            Assert.ThrowsExactly<InvalidOperationException>(act);
-            Assert.AreEqual(1, device.Rules.Count);
-        }
-
-        [TestMethod]
-        public void AddRule_WrongDevice_Throws()
-        {
-            // Arrange
-            SerialNumber serial = SerialNumber.Parse("INT-001");
-            IntersectionDevice device = IntersectionDevice.Register(serial, "Test Intersection");
-            device.AddRule(SignalRule.Create(
-                serial, Approach.NorthSouth, 10, 30, 3, 5, 8));
-            SignalRule wrongDevice = SignalRule.Create(
-                SerialNumber.Parse("INT-002"), Approach.EastWest, 10, 30, 3, 5, 8);
-
-            // Act
-            Action act = () => device.AddRule(wrongDevice);
-
-            // Assert
-            Assert.ThrowsExactly<ArgumentException>(act);
-            Assert.AreEqual(1, device.Rules.Count);
+            Assert.AreEqual(serial, device.Serial);
+            Assert.AreEqual(location, device.LocationSerial);
+            Assert.AreEqual(DeviceLifecycle.Active, device.Status);
+            Assert.AreEqual(commissionedDate, device.CommissionedDate);
         }
     }
 }

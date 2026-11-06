@@ -30,7 +30,7 @@ namespace IoTPlatform.UnitTests
 
             // Act
             ViolationLog result = ViolationLog.LogSpeeding(
-                device, 70m, VehicleSignalState.Green);
+                device, VehicleSignalState.Green, 70m);
 
             // Assert
             Assert.AreEqual(ViolationType.Speeding, result.Type);

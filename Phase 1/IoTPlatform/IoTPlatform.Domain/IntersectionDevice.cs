@@ -6,38 +6,72 @@ namespace IoTPlatform.Domain
     public class IntersectionDevice
     {
         public SerialNumber Serial { get; private set; }
+        public SerialNumber LocationSerial { get; private set; }
         public string DisplayName { get; private set; }
-        public VehicleSignalState NorthSouthVehicle { get; private set; }
-        public VehicleSignalState EastWestVehicle { get; private set; }
-        public PedestrianSignalState NorthSouthPedestrian { get; private set; }
-        public PedestrianSignalState EastWestPedestrian { get; private set; }
+        public SerialNumber Location { get; private set; }
+        public FacingDirection FacingDirection { get; private set; }
+        public string FirmwareVersion { get; private set; }
+        public DateTime CommissionedDate { get; private set; }
+
+
         public DeviceLifecycle Status { get; private set; }
 
-        private readonly List<SignalRule> rules = new List<SignalRule>();
-
-        public IReadOnlyList<SignalRule> Rules
-        {
-            get { return rules.AsReadOnly(); }
-        }
-
-        private IntersectionDevice(SerialNumber serial, string name)
+        private IntersectionDevice(
+            SerialNumber serial,
+            SerialNumber location,
+            string name,
+            FacingDirection facingDirection,
+            string firmwareVersion,
+            DeviceLifecycle status,
+            DateTime commissionedDate)
         {
             Serial = serial;
+            Location = location;
+            LocationSerial = location;
             DisplayName = name;
-            Status = DeviceLifecycle.Commissioned;
-
-            NorthSouthVehicle = VehicleSignalState.Red;
-            EastWestVehicle = VehicleSignalState.Red;
-            NorthSouthPedestrian = PedestrianSignalState.DontWalk;
-            EastWestPedestrian = PedestrianSignalState.DontWalk;
+            FacingDirection = facingDirection;
+            Status = status;
+            CommissionedDate = commissionedDate;
+            FirmwareVersion = firmwareVersion;
         }
 
         public static IntersectionDevice Register(
-            SerialNumber serial, string name)
+            SerialNumber serial, SerialNumber location, string name, FacingDirection facingDirection, string firmwareVersion)
+        {
+            ValidateRegistrationInputs(serial, location, name, firmwareVersion);
+
+            return new IntersectionDevice(
+                serial, location, name, facingDirection, firmwareVersion,
+                DeviceLifecycle.Commissioned, DateTime.UtcNow);
+        }
+
+        /// <summary>
+        /// Rehydrates an existing device (with its real lifecycle status and
+        /// commissioned date) from persistence, as opposed to Register which
+        /// always starts a brand-new device as Commissioned.
+        /// </summary>
+        public static IntersectionDevice Restore(
+            SerialNumber serial, SerialNumber location, string name, FacingDirection facingDirection,
+            string firmwareVersion, DeviceLifecycle status, DateTime commissionedDate)
+        {
+            ValidateRegistrationInputs(serial, location, name, firmwareVersion);
+
+            return new IntersectionDevice(
+                serial, location, name, facingDirection, firmwareVersion,
+                status, commissionedDate);
+        }
+
+        private static void ValidateRegistrationInputs(
+            SerialNumber serial, SerialNumber location, string name, string firmwareVersion)
         {
             if (serial == null)
             {
                 throw new ArgumentNullException(nameof(serial));
+            }
+
+            if (location == null)
+            {
+                throw new ArgumentNullException(nameof(location));
             }
 
             if (string.IsNullOrWhiteSpace(name))
@@ -45,9 +79,11 @@ namespace IoTPlatform.Domain
                 throw new ArgumentException("Device name is required.");
             }
 
-            return new IntersectionDevice(serial, name);
+            if (string.IsNullOrWhiteSpace(firmwareVersion))
+            {
+                throw new ArgumentException("Firmware version is required.");
+            }
         }
-
         public void Activate()
         {
             if (Status != DeviceLifecycle.Commissioned)
@@ -67,175 +103,7 @@ namespace IoTPlatform.Domain
                 throw new InvalidOperationException(
                     "Only an active or degraded device can be deactivated.");
             }
-
-            NorthSouthVehicle = VehicleSignalState.Red;
-            EastWestVehicle = VehicleSignalState.Red;
-            NorthSouthPedestrian = PedestrianSignalState.DontWalk;
-            EastWestPedestrian = PedestrianSignalState.DontWalk;
-
             Status = DeviceLifecycle.Decommissioned;
-        }
-
-        public void ChangePhase(
-            Approach approach, VehicleSignalState nextState)
-        {
-            if (Status != DeviceLifecycle.Active)
-            {
-                throw new InvalidOperationException(
-                    "Device must be active.");
-            }
-
-            if (!Enum.IsDefined(typeof(Approach), approach) ||
-                !Enum.IsDefined(typeof(VehicleSignalState), nextState))
-            {
-                throw new ArgumentException(
-                    "Invalid approach or signal state.");
-            }
-
-            bool northSouth = approach == Approach.NorthSouth;
-
-            VehicleSignalState current = northSouth
-                ? NorthSouthVehicle : EastWestVehicle;
-
-            VehicleSignalState opposite = northSouth
-                ? EastWestVehicle : NorthSouthVehicle;
-
-            if (current == nextState)
-            {
-                return;
-            }
-
-            bool allowed =
-                (current == VehicleSignalState.Red &&
-                    (nextState == VehicleSignalState.Green ||
-                     nextState == VehicleSignalState.AdvancedGreen)) ||
-                (current == VehicleSignalState.AdvancedGreen &&
-                    nextState == VehicleSignalState.Green) ||
-                (current == VehicleSignalState.Green &&
-                    nextState == VehicleSignalState.Yellow) ||
-                (current == VehicleSignalState.Yellow &&
-                    nextState == VehicleSignalState.Red);
-
-            if (!allowed)
-            {
-                throw new InvalidOperationException(
-                    "Invalid signal transition.");
-            }
-
-            if (nextState == VehicleSignalState.Green ||
-                nextState == VehicleSignalState.AdvancedGreen)
-            {
-                if (opposite != VehicleSignalState.Red ||
-                    NorthSouthPedestrian != PedestrianSignalState.DontWalk ||
-                    EastWestPedestrian != PedestrianSignalState.DontWalk)
-                {
-                    throw new InvalidOperationException(
-                        "Other traffic and pedestrians must be stopped first.");
-                }
-            }
-
-            if (northSouth)
-            {
-                NorthSouthVehicle = nextState;
-            }
-            else
-            {
-                EastWestVehicle = nextState;
-            }
-        }
-
-        public void StartAdvancedGreen(Approach approach)
-        {
-            ChangePhase(approach, VehicleSignalState.AdvancedGreen);
-        }
-
-        public void SetPedestrian(
-            Approach approach, PedestrianSignalState nextState)
-        {
-            if (Status != DeviceLifecycle.Active)
-            {
-                throw new InvalidOperationException(
-                    "Device must be active.");
-            }
-
-            if (!Enum.IsDefined(typeof(Approach), approach) ||
-                !Enum.IsDefined(typeof(PedestrianSignalState), nextState))
-            {
-                throw new ArgumentException(
-                    "Invalid approach or pedestrian state.");
-            }
-
-            PedestrianSignalState current;
-
-            if (approach == Approach.NorthSouth)
-            {
-                current = NorthSouthPedestrian;
-            }
-            else
-            {
-                current = EastWestPedestrian;
-            }
-
-            if (current == nextState)
-            {
-                return;
-            }
-
-            bool allowed =
-                (current == PedestrianSignalState.DontWalk &&
-                    nextState == PedestrianSignalState.Walk) ||
-                (current == PedestrianSignalState.Walk &&
-                    nextState == PedestrianSignalState.FlashingDontWalk) ||
-                (current == PedestrianSignalState.FlashingDontWalk &&
-                    nextState == PedestrianSignalState.DontWalk);
-
-            if (!allowed)
-            {
-                throw new InvalidOperationException(
-                    "Invalid pedestrian transition.");
-            }
-
-            if (nextState != PedestrianSignalState.DontWalk &&
-                (NorthSouthVehicle != VehicleSignalState.Red ||
-                 EastWestVehicle != VehicleSignalState.Red))
-            {
-                throw new InvalidOperationException(
-                    "Both vehicle signals must be red for pedestrians.");
-            }
-
-            if (approach == Approach.NorthSouth)
-            {
-                NorthSouthPedestrian = nextState;
-            }
-            else
-            {
-                EastWestPedestrian = nextState;
-            }
-        }
-
-        public void AddRule(SignalRule rule)
-        {
-            if (rule == null)
-            {
-                throw new ArgumentNullException(nameof(rule));
-            }
-
-            if (rule.DeviceSerial != Serial)
-            {
-                throw new ArgumentException(
-                    "Rule must belong to this device.");
-            }
-
-            foreach (SignalRule existing in rules)
-            {
-                if (existing.Approach == rule.Approach)
-                {
-                    throw new InvalidOperationException(
-                        "A rule already exists for this approach.");
-                }
-            }
-
-            rules.Add(rule);
         }
     }
 }

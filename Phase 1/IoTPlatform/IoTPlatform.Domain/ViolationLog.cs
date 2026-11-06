@@ -29,6 +29,7 @@ namespace IoTPlatform.Domain
         public static ViolationLog LogRedLight(
             SerialNumber device,
             VehicleSignalState signal,
+            decimal? speed = null,
             string? plate = null)
         {
             if (device == null)
@@ -44,13 +45,13 @@ namespace IoTPlatform.Domain
             }
 
             return new ViolationLog(
-                device, ViolationType.RedLight, plate, null, signal);
+                device, ViolationType.RedLight, plate, speed, signal);
         }
 
         public static ViolationLog LogSpeeding(
             SerialNumber device,
-            decimal speed,
             VehicleSignalState signal,
+            decimal? speed,
             string? plate = null)
         {
             if (device == null)
@@ -58,7 +59,7 @@ namespace IoTPlatform.Domain
                 throw new ArgumentNullException(nameof(device));
             }
 
-            if (speed <= 0)
+            if (speed == null || speed <= 0)
             {
                 throw new ArgumentException(
                     "Speed must be greater than zero.",

@@ -4,7 +4,7 @@ namespace IoTPlatform.Domain
 {
     public class SignalRule
     {
-        public SerialNumber DeviceSerial { get; private set; }
+        public SerialNumber LocationSerial { get; private set; }
         public Approach Approach { get; private set; }
         public int MinGreenSeconds { get; private set; }
         public int MaxGreenSeconds { get; private set; }
@@ -14,7 +14,7 @@ namespace IoTPlatform.Domain
         public bool IsEnabled { get; private set; }
 
         private SignalRule(
-            SerialNumber device,
+            SerialNumber location,
             Approach approach,
             int minGreen,
             int maxGreen,
@@ -23,7 +23,7 @@ namespace IoTPlatform.Domain
             int threshold,
             bool isEnabled)
         {
-            DeviceSerial = device;
+            LocationSerial = location;
             Approach = approach;
             MinGreenSeconds = minGreen;
             MaxGreenSeconds = maxGreen;
@@ -34,7 +34,7 @@ namespace IoTPlatform.Domain
         }
 
         public static SignalRule Create(
-            SerialNumber device,
+            SerialNumber location,
             Approach approach,
             int minGreen,
             int maxGreen,
@@ -43,9 +43,9 @@ namespace IoTPlatform.Domain
             int threshold,
             bool isEnabled = true)
         {
-            if (device == null)
+            if (location == null)
             {
-                throw new ArgumentNullException(nameof(device));
+                throw new ArgumentNullException(nameof(location));
             }
 
             if (approach != Approach.NorthSouth &&
@@ -74,7 +74,7 @@ namespace IoTPlatform.Domain
             }
 
             return new SignalRule(
-                device, approach, minGreen, maxGreen,
+                location, approach, minGreen, maxGreen,
                 yellow, advancedGreen, threshold, isEnabled);
         }
 
@@ -90,8 +90,11 @@ namespace IoTPlatform.Domain
                 return false;
             }
 
-            if (telemetry.DeviceSerial != DeviceSerial ||
-                telemetry.Approach != Approach)
+            // Note: SignalRule is location-scoped while TrafficTelemetry is
+            // device-scoped, so identity can't be cross-checked here. The
+            // caller is responsible for only evaluating telemetry from a
+            // device that belongs to this rule's location.
+            if (telemetry.Approach != Approach)
             {
                 return false;
             }

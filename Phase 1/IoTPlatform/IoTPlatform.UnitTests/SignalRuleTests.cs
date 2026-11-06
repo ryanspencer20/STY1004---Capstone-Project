@@ -19,7 +19,7 @@ namespace IoTPlatform.UnitTests
                 device, Approach.NorthSouth, 10, 30, 3, 5, 8);
 
             // Assert
-            Assert.AreEqual(device, rule.DeviceSerial);
+            Assert.AreEqual(device, rule.LocationSerial);
             Assert.AreEqual(Approach.NorthSouth, rule.Approach);
             Assert.AreEqual(10, rule.MinGreenSeconds);
             Assert.AreEqual(30, rule.MaxGreenSeconds);
