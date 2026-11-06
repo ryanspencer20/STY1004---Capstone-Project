@@ -8,7 +8,9 @@ namespace IoTPlatform.Domain
 {
     public interface IIntersectionDeviceRepository
     {
-        IntersectionDevice? GetDeviceBySerial(SerialNumber serial);
-        void SaveDevice(IntersectionDevice device);
+        public IntersectionDevice? GetDeviceBySerial(SerialNumber serial);
+        public void SaveDevice(IntersectionDevice device);
+        public void UpdateDevice(IntersectionDevice device);
+    
     }
 }
