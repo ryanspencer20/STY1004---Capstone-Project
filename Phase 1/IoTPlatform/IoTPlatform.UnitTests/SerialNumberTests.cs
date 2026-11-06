@@ -1,4 +1,5 @@
-﻿using IoTPlatform.Domain;
+﻿using System;
+using IoTPlatform.Domain;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace IoTPlatform.UnitTests
@@ -6,70 +7,37 @@ namespace IoTPlatform.UnitTests
     [TestClass]
     public class SerialNumberTests
     {
+
         [TestMethod]
-        public void Parse_ValidIntersectionSerial_ReturnsExpectedValue()
+        [DataRow("INT-001")]
+        [DataRow("CAM-123")]
+        public void Parse_ValidSerial_ReturnsExpectedValue(string input)
         {
             // Arrange
-            string input = "INT-001";
+            string expected = input;
 
             // Act
             SerialNumber result = SerialNumber.Parse(input);
 
             // Assert
-            Assert.AreEqual(input, result.Value);
+            Assert.AreEqual(expected, result.Value);
         }
 
         [TestMethod]
-        public void Parse_InvalidPrefix_ThrowsArgumentException()
+        [DataRow("ABC-001")]
+        [DataRow("")]
+        [DataRow("INT-01")]
+        [DataRow("INT-0A1")]
+        public void Parse_InvalidSerial_Throws(string input)
         {
             // Arrange
-            string input = "ABC-001";
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {  
-                SerialNumber.Parse(input);
-            });
-        }
-
-        [TestMethod]
-        public void Parse_ValidCameraSerial_ReturnsExpectedValue()
-        {
-            // Arrange
-            string input = "CAM-123";
+            string invalidSerial = input;
 
             // Act
-            SerialNumber result = SerialNumber.Parse(input);
+            Action act = () => SerialNumber.Parse(invalidSerial);
 
             // Assert
-            Assert.AreEqual(input, result.Value);
-        }
-
-        [TestMethod]
-        public void Parse_EmptyInput_ThrowsArgumentException()
-        {
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SerialNumber.Parse("");
-            });
-        }
-
-        [TestMethod]
-        public void Parse_WrongLength_ThrowsArgumentException()
-        {
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SerialNumber.Parse("INT-01");
-            });
-        }
-
-        [TestMethod]
-        public void Parse_NonDigitEnding_ThrowsArgumentException()
-        {
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                SerialNumber.Parse("INT-0A1");
-            });
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
 
         [TestMethod]
@@ -79,8 +47,11 @@ namespace IoTPlatform.UnitTests
             SerialNumber first = SerialNumber.Parse("INT-001");
             SerialNumber second = SerialNumber.Parse("INT-001");
 
-            // Act and Assert
-            Assert.AreEqual(first, second);
+            // Act
+            bool result = first.Equals(second);
+
+            // Assert
+            Assert.IsTrue(result);
         }
     }
 }

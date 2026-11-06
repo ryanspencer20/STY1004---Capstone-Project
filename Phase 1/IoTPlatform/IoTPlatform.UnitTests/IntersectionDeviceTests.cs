@@ -7,6 +7,7 @@ namespace IoTPlatform.UnitTests
     [TestClass]
     public class IntersectionDeviceTests
     {
+
         [TestMethod]
         public void Register_SetsDetailsAndSafeStates()
         {
@@ -26,7 +27,7 @@ namespace IoTPlatform.UnitTests
         }
 
         [TestMethod]
-        public void Register_InvalidInputs_Throws()
+        public void Register_NullSerial_Throws()
         {
             // Arrange
             SerialNumber serial = SerialNumber.Parse("CAM-001");
@@ -49,7 +50,7 @@ namespace IoTPlatform.UnitTests
         }
 
         [TestMethod]
-        public void Lifecycle_ActivatesAndDecommissions()
+        public void Register_EmptyName_Throws()
         {
             // Arrange
             SerialNumber serial = SerialNumber.Parse("CAM-001");
@@ -62,6 +63,7 @@ namespace IoTPlatform.UnitTests
 
             // Assert
             Assert.AreEqual(DeviceLifecycle.Active, device.Status);
+        }
 
             // Act
             device.Deactivate();
@@ -69,11 +71,20 @@ namespace IoTPlatform.UnitTests
             // Assert
             Assert.AreEqual(DeviceLifecycle.Decommissioned, device.Status);
 
-            // Act and Assert
-            Assert.ThrowsExactly<InvalidOperationException>(() =>
-            {
-                device.Activate();
-            });
+        [TestMethod]
+        public void Activate_DecommissionedDevice_Throws()
+        {
+            // Arrange
+            IntersectionDevice device = IntersectionDevice.Register(
+                SerialNumber.Parse("INT-001"), "Test Intersection");
+            device.Activate();
+            device.Deactivate();
+
+            // Act
+            Action act = () => device.Activate();
+
+            // Assert
+            Assert.ThrowsExactly<InvalidOperationException>(act);
         }
 
         [TestMethod]

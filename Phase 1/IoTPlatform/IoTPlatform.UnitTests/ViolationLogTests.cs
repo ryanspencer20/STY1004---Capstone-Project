@@ -43,11 +43,14 @@ namespace IoTPlatform.UnitTests
             // Arrange
             SerialNumber device = SerialNumber.Parse("CAM-001");
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
+            // Act
+            Action act = () =>
             {
                 ViolationLog.LogRedLight(device, VehicleSignalState.Green);
-            });
+            };
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
 
         [TestMethod]
@@ -56,11 +59,14 @@ namespace IoTPlatform.UnitTests
             // Arrange
             SerialNumber device = null!;
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentNullException>(() =>
+            // Act
+            Action act = () =>
             {
                 ViolationLog.LogRedLight(device, VehicleSignalState.Red);
-            });
+            };
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentNullException>(act);
         }
 
         [TestMethod]
@@ -69,37 +75,31 @@ namespace IoTPlatform.UnitTests
             // Arrange
             SerialNumber device = null!;
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentNullException>(() =>
+            // Act
+            Action act = () =>
             {
-                ViolationLog.LogSpeeding(device, VehicleSignalState.Green, 70m);
-            });
+                ViolationLog.LogSpeeding(device, 70m, VehicleSignalState.Green);
+            };
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentNullException>(act);
         }
 
         [TestMethod]
-        public void LogSpeeding_ZeroSpeed_Throws()
+        [DataRow(0)]
+        [DataRow(-1)]
+        public void LogSpeeding_InvalidSpeed_Throws(int speed)
         {
             // Arrange
             SerialNumber device = SerialNumber.Parse("CAM-001");
+            decimal speedKph = speed;
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                ViolationLog.LogSpeeding(device, VehicleSignalState.Green, 0m);
-            });
-        }
+            // Act
+            Action act = () => ViolationLog.LogSpeeding(
+                device, speedKph, VehicleSignalState.Green);
 
-        [TestMethod]
-        public void LogSpeeding_NegativeSpeed_Throws()
-        {
-            // Arrange
-            SerialNumber device = SerialNumber.Parse("CAM-001");
-
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
-            {
-                ViolationLog.LogSpeeding(device, VehicleSignalState.Green, -1m);
-            });
+            // Assert
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
 
         [TestMethod]
@@ -108,11 +108,14 @@ namespace IoTPlatform.UnitTests
             // Arrange
             SerialNumber device = SerialNumber.Parse("CAM-001");
 
-            // Act and Assert
-            Assert.ThrowsExactly<ArgumentException>(() =>
+            // Act
+            Action act = () =>
             {
-                ViolationLog.LogSpeeding(device, (VehicleSignalState)99, 70m);
-            });
+                ViolationLog.LogSpeeding(device, 70m, (VehicleSignalState)99);
+            };
+
+            // Assert
+            Assert.ThrowsExactly<ArgumentException>(act);
         }
     }
 }
